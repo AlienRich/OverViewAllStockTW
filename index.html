@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>00981A 主動增長 ✕ 交易指導員決策終端 (純前端免金鑰版)</title>
-  <!-- 引入 Tailwind CSS 與 Lightweight Charts (純免費 CDN) -->
+  <title>00981A 增長篩選 ✕ 交易指導員決策終端</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <style>
@@ -13,163 +12,108 @@
 </head>
 <body class="p-4 md:p-8">
   <div class="max-w-6xl mx-auto space-y-6">
-    <!-- 標頭 -->
-    <header class="border-b border-slate-800 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
       <div>
-        <h1 class="text-xl md:text-2xl font-bold text-emerald-400">00981A 主動增長 ✕ 交易指導員 (Alpha Architect)</h1>
-        <p class="text-xs text-slate-400 mt-1">純前端規則引擎 ｜ 零 API-KEY 依賴 ｜ 即時一年期走勢與量化作戰計畫</p>
+        <h1 class="text-xl md:text-2xl font-bold text-emerald-400">00981A 增長篩選 ✕ 交易指導員 (Alpha Architect)</h1>
+        <p class="text-xs text-slate-400 mt-1">全市場均線多頭篩選 ➔ 00981A 成長精篩 ➔ 交易指導員 SMC 決策</p>
       </div>
-      <div class="flex items-center gap-2">
-        <input id="symbolInput" type="text" value="2330.TW" placeholder="台股代號 (如 2330.TW)" 
-               class="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 w-36">
-        <button onclick="executePipeline()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-1.5 rounded transition">
-          執行全息掃描
-        </button>
-      </div>
+      <div id="updateTime" class="text-xs text-slate-500">更新時間：載入中...</div>
     </header>
 
-    <!-- 00981A 篩選狀態卡片 -->
-    <section class="bg-slate-900 border border-slate-800 rounded-lg p-5">
-      <h2 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-        <span>📋 00981A 主動增長指標審查</span>
-        <span id="filterBadge" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">待檢核</span>
-      </h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-        <div class="bg-slate-950 p-3 rounded border border-slate-800/80">
-          <div class="text-xs text-slate-400">近四季 ROE (>15%)</div>
-          <div id="valRoe" class="text-base font-bold text-slate-200 mt-1">--</div>
-        </div>
-        <div class="bg-slate-950 p-3 rounded border border-slate-800/80">
-          <div class="text-xs text-slate-400">營收/淨利成長 (>10%)</div>
-          <div id="valGrowth" class="text-base font-bold text-slate-200 mt-1">--</div>
-        </div>
-        <div class="bg-slate-950 p-3 rounded border border-slate-800/80">
-          <div class="text-xs text-slate-400">本益成長比 PEG (&lt;1.5)</div>
-          <div id="valPeg" class="text-base font-bold text-slate-200 mt-1">--</div>
-        </div>
-        <div class="bg-slate-950 p-3 rounded border border-slate-800/80">
-          <div class="text-xs text-slate-400">營運現金流 OCF (&gt;0)</div>
-          <div id="valOcf" class="text-base font-bold text-slate-200 mt-1">--</div>
-        </div>
+    <!-- 通過篩選的個股標籤切換列 -->
+    <div>
+      <div class="text-xs font-semibold text-slate-400 mb-2">選定分析標的（通過雙重篩選）：</div>
+      <div id="stockTabs" class="flex flex-wrap gap-2">
+        <!-- 動態產生按鈕 -->
+      </div>
+    </div>
+
+    <!-- 00981A 審查卡片 -->
+    <section class="bg-slate-900 border border-slate-800 rounded-lg p-4">
+      <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">00981A 主動增長指標審查 (已通過)</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <div class="bg-slate-950 p-3 rounded border border-slate-800"><span class="text-xs text-slate-500 block">近四季 ROE</span><span id="cardRoe" class="font-bold text-emerald-400">--</span></div>
+        <div class="bg-slate-950 p-3 rounded border border-slate-800"><span class="text-xs text-slate-500 block">營收/淨利成長</span><span id="cardGrowth" class="font-bold text-emerald-400">--</span></div>
+        <div class="bg-slate-950 p-3 rounded border border-slate-800"><span class="text-xs text-slate-500 block">本益成長比 PEG</span><span id="cardPeg" class="font-bold text-emerald-400">--</span></div>
+        <div class="bg-slate-950 p-3 rounded border border-slate-800"><span class="text-xs text-slate-500 block">營運現金流 OCF</span><span id="cardOcf" class="font-bold text-emerald-400">--</span></div>
       </div>
     </section>
 
-    <!-- 一年期 K 線圖展示區塊 -->
-    <section class="bg-slate-900 border border-slate-800 rounded-lg p-5">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-sm font-semibold text-slate-300" id="chartHeader">一年期日 K 線 (OHLCV + 20/60/200MA)</h2>
+    <!-- 一年期 K 線圖 -->
+    <section class="bg-slate-900 border border-slate-800 rounded-lg p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-sm font-semibold text-slate-200" id="chartTitle">一年期走勢 (日 K 線 + 20/60/200MA)</h2>
         <div class="flex gap-3 text-xs">
           <span class="text-sky-400">● 20MA</span>
           <span class="text-amber-400">● 60MA</span>
           <span class="text-purple-400">● 200MA</span>
         </div>
       </div>
-      <div id="chartContainer" style="height: 440px; width: 100%;"></div>
+      <div id="tvchart" style="height: 420px; width: 100%;"></div>
     </section>
 
-    <!-- 交易指導員-v20260611 戰略剖析報告 -->
-    <section id="analysisSection" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-6">
+    <!-- 交易指導員-v20260611 全息決策報告 (K線正下方) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
       <h2 class="text-base font-bold text-emerald-400 border-b border-slate-800 pb-2">
         🧭 交易指導員-v20260611 全息決策報告
       </h2>
 
-      <!-- 1. 重點摘要 -->
+      <!-- 重點摘要 -->
       <div>
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">重點摘要</h3>
-        <ul id="summaryList" class="list-disc list-inside space-y-1 text-sm text-slate-200">
-          <li>請點擊上方按鈕執行掃描以載入分析。</li>
-        </ul>
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">重點摘要</h3>
+        <ul id="reportSummary" class="list-disc list-inside space-y-1 text-sm text-slate-200"></ul>
       </div>
 
-      <!-- 2. 金融數據核實表 -->
-      <div>
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">金融數據核實表 (三道閘門防錯)</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300 border border-slate-800">
-            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <tr>
-                <th class="p-2">週期</th>
-                <th class="p-2">數據項</th>
-                <th class="p-2">數值</th>
-                <th class="p-2">結構位 (FVG / 乖離)</th>
-                <th class="p-2">時間戳</th>
-                <th class="p-2">狀態</th>
-              </tr>
-            </thead>
-            <tbody id="verifyTableBody">
-              <tr><td colspan="6" class="p-3 text-center text-slate-500">暫無數據</td></tr>
-            </tbody>
-          </table>
+      <!-- 宏觀與微觀風控儀表板 -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300 border border-slate-800">
+          <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="p-2">代號</th>
+              <th class="p-2">當前市價</th>
+              <th class="p-2">60MA 季線乖離率</th>
+              <th class="p-2">風控狀態</th>
+              <th class="p-2">SMC 機構足跡 (FVG)</th>
+            </tr>
+          </thead>
+          <tbody id="riskTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- 交易作戰指令 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+        <div class="bg-emerald-950/40 p-3 rounded border border-emerald-800/50">
+          <div class="text-xs text-emerald-400 font-semibold mb-1">狙擊買入區 (Buy Zone)</div>
+          <div id="planBuy" class="text-sm font-bold text-slate-100">--</div>
         </div>
-      </div>
-
-      <!-- 3. 宏觀風控儀表板 -->
-      <div>
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">宏觀風控儀表板 (Macro Risk Dashboard)</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300 border border-slate-800">
-            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
-              <tr>
-                <th class="p-2">指數</th>
-                <th class="p-2">巴菲特指標 (SEV)</th>
-                <th class="p-2">席勒 PE (CAPE)</th>
-                <th class="p-2">60MA 乖離率</th>
-                <th class="p-2">風控狀態</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-b border-slate-800/60">
-                <td class="p-2 font-medium">台灣加權指數 (TAIEX)</td>
-                <td class="p-2">約 280% (高檔)</td>
-                <td class="p-2">24.2</td>
-                <td id="taiexBias" class="p-2">--</td>
-                <td id="taiexStatus" class="p-2">--</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="bg-rose-950/40 p-3 rounded border border-rose-800/50">
+          <div class="text-xs text-rose-400 font-semibold mb-1">失效停損點 (Stop Loss)</div>
+          <div id="planLoss" class="text-sm font-bold text-slate-100">--</div>
         </div>
-      </div>
-
-      <!-- 4. 交易作戰計畫 -->
-      <div class="space-y-3">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">交易作戰計畫 (SMC / VCP 執行)</h3>
-        <div class="bg-slate-950 p-4 rounded border border-slate-800 space-y-2 text-sm">
-          <div><strong class="text-slate-400">【技術結構分析】：</strong><span id="planStructure">--</span></div>
-          <div><strong class="text-slate-400">【機構足跡 (ICT)】：</strong><span id="planIct">--</span></div>
-          <div class="pt-2 border-t border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="bg-emerald-950/40 p-2.5 rounded border border-emerald-800/50">
-              <span class="text-xs text-emerald-400 block font-semibold">狙擊買入區 (Buy Zone)</span>
-              <span id="planBuyZone" class="text-sm font-bold text-slate-100">--</span>
-            </div>
-            <div class="bg-rose-950/40 p-2.5 rounded border border-rose-800/50">
-              <span class="text-xs text-rose-400 block font-semibold">失效停損點 (Stop Loss)</span>
-              <span id="planStopLoss" class="text-sm font-bold text-slate-100">--</span>
-            </div>
-            <div class="bg-sky-950/40 p-2.5 rounded border border-sky-800/50">
-              <span class="text-xs text-sky-400 block font-semibold">目標獲利點 (Take Profit)</span>
-              <span id="planTakeProfit" class="text-sm font-bold text-slate-100">--</span>
-            </div>
-          </div>
+        <div class="bg-sky-950/40 p-3 rounded border border-sky-800/50">
+          <div class="text-xs text-sky-400 font-semibold mb-1">目標獲利點 (Take Profit)</div>
+          <div id="planProfit" class="text-sm font-bold text-slate-100">--</div>
         </div>
       </div>
     </section>
   </div>
 
   <script>
-    // 1. 初始化圖表
     let chart, candleSeries, line20, line60, line200;
+    let globalData = null;
+
     function initChart() {
-      const container = document.getElementById('chartContainer');
-      chart = LightweightCharts.createChart(container, {
+      const el = document.getElementById('tvchart');
+      chart = LightweightCharts.createChart(el, {
         layout: { backgroundColor: '#090d16', textColor: '#94a3b8' },
         grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-        timeScale: { borderColor: '#334155', timeVisible: true },
+        timeScale: { borderColor: '#334155' },
         rightPriceScale: { borderColor: '#334155' }
       });
       candleSeries = chart.addCandlestickSeries({
         upColor: '#ef4444', downColor: '#22c55e',
-        borderUpColor: '#ef4444', borderDownColor: '#22c55e',
-        wickUpColor: '#ef4444', wickDownColor: '#22c55e'
+        wickUpColor: '#ef4444', wickDownColor: '#22c55e',
+        borderVisible: false
       });
       line20 = chart.addLineSeries({ color: '#38bdf8', lineWidth: 1.5 });
       line60 = chart.addLineSeries({ color: '#fbbf24', lineWidth: 1.5 });
@@ -177,147 +121,84 @@
     }
     initChart();
 
-    // 2. 移動平均線計算輔助函式
-    function calculateMA(data, period) {
-      let result = [];
-      for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) continue;
-        let sum = 0;
-        for (let j = 0; j < period; j++) sum += data[i - j].close;
-        result.push({ time: data[i].time, value: sum / period });
-      }
-      return result;
-    }
-
-    // 3. 核心執行流程 (免 API-KEY)
-    async function executePipeline() {
-      const symbol = document.getElementById('symbolInput').value.trim().toUpperCase() || '2330.TW';
-      document.getElementById('chartHeader').innerText = `${symbol} 一年期日 K 線 (OHLCV + 20/60/200MA)`;
-
+    async function loadData() {
       try {
-        // 使用免費公開 Yahoo Finance JSON API (透過公開 CORS 代理轉發)
-        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1y&interval=1d`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-        
-        const response = await fetch(proxyUrl);
-        const json = await response.json();
-        const result = json.chart.result[0];
-        
-        const timestamps = result.timestamp;
-        const quotes = result.indicators.quote[0];
-        
-        let candleData = [];
-        for (let i = 0; i < timestamps.length; i++) {
-          if (!quotes.open[i] || !quotes.close[i]) continue;
-          const d = new Date(timestamps[i] * 1000);
-          const dateStr = d.toISOString().split('T')[0];
-          candleData.push({
-            time: dateStr,
-            open: quotes.open[i],
-            high: quotes.high[i],
-            low: quotes.low[i],
-            close: quotes.close[i],
-            volume: quotes.volume[i]
-          });
-        }
-
-        // 更新圖表
-        candleSeries.setData(candleData);
-        line20.setData(calculateMA(candleData, 20));
-        line60.setData(calculateMA(candleData, 60));
-        line200.setData(calculateMA(candleData, 200));
-        chart.timeScale().fitContent();
-
-        // 4. 00981A 內嵌量化規則計算
-        const currentPrice = candleData[candleData.length - 1].close;
-        const ma60Val = calculateMA(candleData, 60).slice(-1)[0]?.value || currentPrice;
-        const ma200Val = calculateMA(candleData, 200).slice(-1)[0]?.value || currentPrice;
-        const bias60 = ((currentPrice - ma60Val) / ma60Val) * 100;
-
-        // 模擬基本面動能檢核 (真實環境可改串公開資訊觀測站 API)
-        const mockRoe = 24.5;
-        const mockGrowth = 18.2;
-        const mockPeg = 0.95;
-        const mockOcfPositive = true;
-
-        document.getElementById('valRoe').innerText = `${mockRoe}% (通過)`;
-        document.getElementById('valGrowth').innerText = `+${mockGrowth}% (通過)`;
-        document.getElementById('valPeg').innerText = `${mockPeg} (首選)`;
-        document.getElementById('valOcf').innerText = `正流入 (通過)`;
-        
-        const filterBadge = document.getElementById('filterBadge');
-        filterBadge.innerText = '00981A 完美符合';
-        filterBadge.className = 'text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
-
-        // 5. 交易指導員規則引擎運算 (SMC + 乖離防線)
-        const now = new Date();
-        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        // 偵測近期 FVG (合理價值缺口)
-        let fvgText = "未見顯著缺口";
-        let buyZoneText = `${(currentPrice * 0.98).toFixed(1)} - ${currentPrice.toFixed(1)}`;
-        if (candleData.length >= 3) {
-          const c1 = candleData[candleData.length - 3];
-          const c3 = candleData[candleData.length - 1];
-          if (c3.low > c1.high) {
-            fvgText = `Bullish FVG: [${c1.high.toFixed(1)} - ${c3.low.toFixed(1)}]`;
-            buyZoneText = `${c1.high.toFixed(1)} - ${c3.low.toFixed(1)} (回補缺口)`;
-          }
-        }
-
-        // 60MA 乖離率超標處置
-        let biasWarning = false;
-        if (bias60 > 15.0) {
-          biasWarning = true;
-          buyZoneText = "【強制關閉】60MA 乖離超過 +15%，嚴禁追高，等待回調";
-        }
-
-        // 渲染重點摘要
-        document.getElementById('summaryList').innerHTML = `
-          <li><strong>趨勢階段</strong>：現價高於 200MA (${ma200Val.toFixed(1)})，處於 Minervini Stage 2 多頭結構。</li>
-          <li><strong>乖離檢核</strong>：當前 60MA 季線為 ${ma60Val.toFixed(1)}，乖離率為 <strong>${bias60 > 0 ? '+' : ''}${bias60.toFixed(2)}%</strong> ${biasWarning ? '<span class="text-rose-400 font-bold">⚠️ 極端過熱</span>' : '(安全)'}。</li>
-          <li><strong>SMC 機構足跡</strong>：${fvgText}。</li>
-        `;
-
-        // 渲染數據核實表
-        document.getElementById('verifyTableBody').innerHTML = `
-          <tr class="border-b border-slate-800/60">
-            <td class="p-2">Daily</td>
-            <td class="p-2 font-medium">即時/收盤市價</td>
-            <td class="p-2 font-bold text-emerald-400">${currentPrice.toFixed(2)} TWD</td>
-            <td class="p-2">${fvgText}</td>
-            <td class="p-2">${timeStr}</td>
-            <td class="p-2 text-emerald-400">已核實</td>
-          </tr>
-          <tr class="border-b border-slate-800/60">
-            <td class="p-2">Daily</td>
-            <td class="p-2 font-medium">60MA (季線)</td>
-            <td class="p-2">${ma60Val.toFixed(2)} TWD</td>
-            <td class="p-2">乖離 ${bias60.toFixed(2)}%</td>
-            <td class="p-2">${timeStr}</td>
-            <td class="p-2 ${biasWarning ? 'text-rose-400' : 'text-emerald-400'}">${biasWarning ? '警戒 ⚠️' : '正常'}</td>
-          </tr>
-        `;
-
-        // 渲染風控狀態
-        document.getElementById('taiexBias').innerText = `${bias60.toFixed(2)}%`;
-        document.getElementById('taiexStatus').innerHTML = biasWarning ? '<span class="text-rose-400 font-bold">警戒 ⚠️</span>' : '<span class="text-emerald-400">中等</span>';
-
-        // 渲染作戰計畫
-        document.getElementById('planStructure').innerText = `200MA 向上推進，VCP 波動收縮中；目前 60MA 乖離為 ${bias60.toFixed(2)}% ${biasWarning ? '（高潮頂防線生效）' : ''}。`;
-        document.getElementById('planIct').innerText = `觀察 Sell-Side 流動性是否被洗盤，關注 ${fvgText} 作為聰明錢回測買點。`;
-        document.getElementById('planBuyZone').innerText = buyZoneText;
-        document.getElementById('planStopLoss').innerText = `${(currentPrice * 0.95).toFixed(1)} TWD (關鍵低點跌破)`;
-        document.getElementById('planTakeProfit').innerText = `${(currentPrice * 1.15).toFixed(1)} TWD (流動性磁鐵區)`;
-
-      } catch (err) {
-        alert("資料抓取失敗，請確認代號格式 (例如 2330.TW) 或稍後重試。");
-        console.error(err);
+        const res = await fetch('data.json?t=' + new Date().getTime());
+        globalData = await res.json();
+        document.getElementById('updateTime').innerText = `資料最後掃描時間：${globalData.update_time}`;
+        renderTabs();
+      } catch (e) {
+        document.getElementById('tvchart').innerHTML = '<div class="p-8 text-center text-slate-500">尚無 data.json 檔案，請先執行 scanner.py 產出數據。</div>';
       }
     }
 
-    // 預設初次載入執行台積電
-    window.onload = () => executePipeline();
+    function renderTabs() {
+      const tabs = document.getElementById('stockTabs');
+      tabs.innerHTML = '';
+      if (!globalData || globalData.stocks.length === 0) {
+        tabs.innerHTML = '<span class="text-xs text-slate-500">本日全市場無符合雙重條件標的</span>';
+        return;
+      }
+      globalData.stocks.forEach((stock, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `px-3 py-1.5 rounded text-xs font-semibold transition ${idx === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
+        btn.innerText = `${stock.symbol} ${stock.name}`;
+        btn.onclick = () => selectStock(idx, btn);
+        tabs.appendChild(btn);
+      });
+      selectStock(0, tabs.children[0]);
+    }
+
+    function selectStock(index, btnElem) {
+      document.querySelectorAll('#stockTabs button').forEach(b => {
+        b.className = 'px-3 py-1.5 rounded text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700';
+      });
+      if (btnElem) btnElem.className = 'px-3 py-1.5 rounded text-xs font-semibold bg-emerald-600 text-white';
+
+      const s = globalData.stocks[index];
+      document.getElementById('chartTitle').innerText = `${s.symbol} ${s.name} 一年期走勢`;
+      
+      // 更新卡片
+      document.getElementById('cardRoe').innerText = s.fundamentals.roe;
+      document.getElementById('cardGrowth').innerText = s.fundamentals.growth;
+      document.getElementById('cardPeg').innerText = s.fundamentals.peg;
+      document.getElementById('cardOcf').innerText = s.fundamentals.ocf;
+
+      // 更新 K 線與均線
+      const candles = s.chart_data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
+      const m20 = s.chart_data.filter(d => d.ma20).map(d => ({ time: d.time, value: d.ma20 }));
+      const m60 = s.chart_data.filter(d => d.ma60).map(d => ({ time: d.time, value: d.ma60 }));
+      const m200 = s.chart_data.filter(d => d.ma200).map(d => ({ time: d.time, value: d.ma200 }));
+
+      candleSeries.setData(candles);
+      line20.setData(m20);
+      line60.setData(m60);
+      line200.setData(m200);
+      chart.timeScale().fitContent();
+
+      // 更新交易指導員報告
+      document.getElementById('reportSummary').innerHTML = `
+        <li><strong>均線型態</strong>：現價 > 20MA > 60MA > 200MA，符合 Minervini Stage 2 多頭擴張架構。</li>
+        <li><strong>季線乖離</strong>：60MA 乖離率為 <strong>${s.bias_60 > 0 ? '+' : ''}${s.bias_60}%</strong> ${s.bias_warning ? '<span class="text-rose-400 font-bold">⚠️ 極端過熱 (+15% 熔斷)</span>' : '(安全可介入)'}。</li>
+        <li><strong>基本面優勢</strong>：通過 00981A 增長篩選，成長率 ${s.fundamentals.growth}，PEG 為 ${s.fundamentals.peg}。</li>
+      `;
+
+      document.getElementById('riskTableBody').innerHTML = `
+        <tr class="border-b border-slate-800/60">
+          <td class="p-2 font-bold">${s.symbol}</td>
+          <td class="p-2 text-emerald-400">${s.close} TWD</td>
+          <td class="p-2">${s.bias_60}%</td>
+          <td class="p-2 ${s.bias_warning ? 'text-rose-400 font-bold' : 'text-emerald-400'}">${s.bias_warning ? '警戒 ⚠️' : '正常'}</td>
+          <td class="p-2 text-sky-400">${s.ict.fvg}</td>
+        </tr>
+      `;
+
+      document.getElementById('planBuy').innerText = s.ict.buy_zone;
+      document.getElementById('planLoss').innerText = s.ict.stop_loss;
+      document.getElementById('planProfit').innerText = s.ict.take_profit;
+    }
+
+    loadData();
   </script>
 </body>
 </html>
