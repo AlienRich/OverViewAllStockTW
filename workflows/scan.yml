@@ -1,13 +1,13 @@
-name: Daily Stock Screener
+name: Full Market Scanner
 
 on:
   schedule:
-    # 台灣時間每個交易日 16:30 (UTC 08:30) 自動執行
+    # 台灣時間週一至週五 16:30 (UTC 08:30)
     - cron: '30 8 * * 1-5'
-  workflow_dispatch: # 支援在 GitHub 網頁手動點擊「Run workflow」立即執行
+  workflow_dispatch: # 支援在 GitHub 網頁 Actions 頁籤手動按「Run workflow」
 
 jobs:
-  run-screener:
+  scan-tw-market:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -15,16 +15,16 @@ jobs:
       - name: 檢出代碼
         uses: actions/checkout@v4
 
-      - name: 設定 Python 環境
+      - name: 設定 Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: 安裝相依套件
         run: |
-          pip install yfinance pandas numpy
+          pip install requests yfinance pandas numpy
 
-      - name: 執行三階量化篩選
+      - name: 執行全市場三階量化篩選
         run: |
           python scanner.py
 
@@ -33,4 +33,4 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update screening results [$(date '+%Y-%m-%d %H:%M')]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update full market scan [$(date '+%Y-%m-%d %H:%M')]" && git push)
